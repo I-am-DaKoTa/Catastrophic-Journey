@@ -100,16 +100,16 @@ class Player(pygame.sprite.Sprite):
         # Получаем состояние всех клавиш
         keys = pygame.key.get_pressed()
 
-        if keys[pygame.K_RIGHT]:
+        if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
             self.direction.x = 1
             self.facing_right = True
-        elif keys[pygame.K_LEFT]:
+        elif keys[pygame.K_LEFT] or keys[pygame.K_a]:
             self.direction.x = -1
             self.facing_right = False
         else:
             self.direction.x = 0
 
-        if keys[pygame.K_SPACE] and self.on_ground:
+        if (keys[pygame.K_SPACE] or keys[pygame.K_w] or keys[pygame.K_UP]) and self.on_ground:
             self.jump()
             self.create_jump_particles(self.rect.midbottom)
 

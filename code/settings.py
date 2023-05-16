@@ -3,13 +3,13 @@ level_map = [
     '                            ',
     '                            ',
     '                            ',
-    ' XX    XXX            XX    ',
-    ' XX                         ',
-    ' XXXX         XX         XX ',
-    ' XXXX       XX  X       X X ',
-    ' XX    XXXXXXX    XX   X  X ',
-    '                      X   X ',
-    '  P                  X    X ',
+    '            X               ',
+    '       X    X               ',
+    '       X    X            XX ',
+    'X  X   X    X           X X ',
+    'X                      X  X ',
+    'XX  P    XXX           X   X ',
+    'X  XXX               X    X ',
     'XXXXXXXXXXXXXXXXXXXXXXXXXXX ']
 
 # Размер блока
