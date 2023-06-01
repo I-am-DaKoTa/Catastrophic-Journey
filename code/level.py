@@ -1,24 +1,145 @@
 import pygame
-from tiles import Tile
-from settings import tile_size, screen_width
+from support import import_csv_layout, import_cut_graphics
+from settings import tile_size, screen_height, screen_width
+from tiles import Tile, StaticTile, Crate, Coin, Palm, Flag
+from enemy import Enemy
+from decoration import Sky, Water, Clouds
 from player import Player
 from particles import ParticleEffect
+from game_data import levels
 
 
 class Level:
-    def __init__(self, level_data, surface):
-
+    def __init__(self, current_level, surface, create_overworld, change_coins, change_health):
         # Настройка уровня
         self.display_surface = surface
-        self.setup_level(level_data)
         self.world_shift = 0
-        self.current_x = 0
+        self.current_x = None
 
-        # Эффект
+        # аудио
+        self.coin_sound = pygame.mixer.Sound('../audio/effects/coin.mp3')
+        self.stomp_sound = pygame.mixer.Sound('../audio/effects/stomp.mp3')
+
+        # связь с картой мира
+        self.create_overworld = create_overworld
+        self.current_level = current_level
+        level_data = levels[self.current_level]
+        self.new_max_level = level_data['unlock']
+
+        # игрок
+        player_layout = import_csv_layout(level_data['player'])
+        self.player = pygame.sprite.GroupSingle()
+        self.goal = pygame.sprite.GroupSingle()
+        self.player_setup(player_layout, change_health)
+
+        # интерфейс
+        self.change_coins = change_coins
+
+        # частицы пыли
         self.dust_sprite = pygame.sprite.GroupSingle()
         self.player_on_ground = False
 
-    # Создание эффекта при прыжке
+        # частицы взрыва
+        self.explosion_sprites = pygame.sprite.Group()
+
+        # Создание ландшафта
+        terrain_layout = import_csv_layout(level_data['terrain'])
+        self.terrain_sprites = self.create_tile_group(terrain_layout, 'terrain')
+
+        # Создание травы
+        grass_layout = import_csv_layout(level_data['grass'])
+        self.grass_sprites = self.create_tile_group(grass_layout, 'grass')
+
+        # Ящики
+        crate_layout = import_csv_layout(level_data['crates'])
+        self.crate_sprites = self.create_tile_group(crate_layout, 'crates')
+
+        # Монетки
+        coin_layout = import_csv_layout(level_data['coins'])
+        self.coin_sprites = self.create_tile_group(coin_layout, 'coins')
+
+        # Передний план
+        fg_palm_layout = import_csv_layout(level_data['fg palms'])
+        self.fg_palm_sprites = self.create_tile_group(fg_palm_layout, 'fg palms')
+
+        # Задний план
+        bg_palm_layout = import_csv_layout(level_data['bg palms'])
+        self.bg_palm_sprites = self.create_tile_group(bg_palm_layout, 'bg palms')
+
+        # Враги
+        enemy_layout = import_csv_layout(level_data['enemies'])
+        self.enemy_sprites = self.create_tile_group(enemy_layout, 'enemies')
+
+        # Ограничение
+        constraint_layout = import_csv_layout(level_data['constraints'])
+        self.constraint_sprites = self.create_tile_group(constraint_layout, 'constraint')
+
+        # Декорации
+        self.sky = Sky(8)
+        level_width = len(terrain_layout[0]) * tile_size
+        self.water = Water(screen_height - 20, level_width)
+        self.clouds = Clouds(400, level_width, 30)
+
+    def create_tile_group(self, layout, type):
+        sprite_group = pygame.sprite.Group()
+
+        for row_index, row in enumerate(layout):
+            for col_index, val in enumerate(row):
+                if val != '-1':
+                    x = col_index * tile_size
+                    y = row_index * tile_size
+
+                    if type == 'terrain':
+                        terrain_tile_list = import_cut_graphics('../graphics/terrain/terrain_tiles.png')
+                        tile_surface = terrain_tile_list[int(val)]
+                        sprite = StaticTile(tile_size, x, y, tile_surface)
+
+                    if type == 'grass':
+                        grass_tile_list = import_cut_graphics('../graphics/decoration/grass/grass.png')
+                        tile_surface = grass_tile_list[int(val)]
+                        sprite = StaticTile(tile_size, x, y, tile_surface)
+
+                    if type == 'crates':
+                        sprite = Crate(tile_size, x, y)
+
+                    if type == 'coins':
+                        if val == '0': sprite = Coin(tile_size, x, y, '../graphics/coins/gold', 5)
+                        if val == '1': sprite = Coin(tile_size, x, y, '../graphics/coins/silver', 1)
+
+                    if type == 'fg palms':
+                        if val == '0': sprite = Palm(tile_size, x, y, '../graphics/terrain/palm_small', 38)
+                        if val == '1': sprite = Palm(tile_size, x, y, '../graphics/terrain/palm_large', 64)
+
+                    if type == 'bg palms':
+                        sprite = Palm(tile_size, x, y, '../graphics/terrain/palm_bg', 64)
+
+                    if type == 'enemies':
+                        sprite = Enemy(tile_size, x, y)
+
+                    if type == 'constraint':
+                        sprite = Tile(tile_size, x, y)
+
+                    sprite_group.add(sprite)
+
+        return sprite_group
+
+    def player_setup(self, layout, change_health):
+        for row_index, row in enumerate(layout):
+            for col_index, val in enumerate(row):
+                x = col_index * tile_size
+                y = row_index * tile_size
+                if val == '0':
+                    sprite = Player((x, y), self.display_surface, self.create_jump_particles, change_health)
+                    self.player.add(sprite)
+                if val == '1':
+                    sprite = Flag(tile_size, x, y, '../graphics/character/flag', 64)
+                    self.goal.add(sprite)
+
+    def enemy_collision_reverse(self):
+        for enemy in self.enemy_sprites.sprites():
+            if pygame.sprite.spritecollide(enemy, self.constraint_sprites, False):
+                enemy.reverse()
+
     def create_jump_particles(self, pos):
         if self.player.sprite.facing_right:
             pos -= pygame.math.Vector2(10, 5)
@@ -27,41 +148,40 @@ class Level:
         jump_particle_sprite = ParticleEffect(pos, 'jump')
         self.dust_sprite.add(jump_particle_sprite)
 
-    # Определение, находится ли игрок на земле
-    def get_player_on_ground(self):
-        if self.player.sprite.on_ground:
-            self.player_on_ground = True
-        else:
-            self.player_on_ground = False
+    def horizontal_movement_collision(self):
+        player = self.player.sprite
+        player.collision_rect.x += player.direction.x * player.speed
+        collidable_sprites = self.terrain_sprites.sprites() + self.crate_sprites.sprites() + self.fg_palm_sprites.sprites()
+        for sprite in collidable_sprites:
+            if sprite.rect.colliderect(player.collision_rect):
+                if player.direction.x < 0:
+                    player.collision_rect.left = sprite.rect.right
+                    player.on_left = True
+                    self.current_x = player.rect.left
+                elif player.direction.x > 0:
+                    player.collision_rect.right = sprite.rect.left
+                    player.on_right = True
+                    self.current_x = player.rect.right
 
-    # Создание эффекта падения на землю
-    def create_landing_dust(self):
-        if not self.player_on_ground and self.player.sprite.on_ground and not self.dust_sprite.sprites():
-            if self.player.sprite.facing_right:
-                offset = pygame.math.Vector2(10, 15)
-            else:
-                offset = pygame.math.Vector2(-10, 15)
-            fall_dust_particle = ParticleEffect(self.player.sprite.rect.midbottom - offset, 'land')
-            self.dust_sprite.add(fall_dust_particle)
+    def vertical_movement_collision(self):
+        player = self.player.sprite
+        player.apply_gravity()
+        collidable_sprites = self.terrain_sprites.sprites() + self.crate_sprites.sprites() + self.fg_palm_sprites.sprites()
 
-    # Установка технического уровня
-    def setup_level(self, layout):
-        self.tiles = pygame.sprite.Group()
-        self.player = pygame.sprite.GroupSingle()
+        for sprite in collidable_sprites:
+            if sprite.rect.colliderect(player.collision_rect):
+                if player.direction.y > 0:
+                    player.collision_rect.bottom = sprite.rect.top
+                    player.direction.y = 0
+                    player.on_ground = True
+                elif player.direction.y < 0:
+                    player.collision_rect.top = sprite.rect.bottom
+                    player.direction.y = 0
+                    player.on_ceiling = True
 
-        for row_index, row in enumerate(layout):
-            for col_index, cell in enumerate(row):
-                x = col_index * tile_size
-                y = row_index * tile_size
+        if player.on_ground and player.direction.y < 0 or player.direction.y > 1:
+            player.on_ground = False
 
-                if cell == 'X':
-                    tile = Tile((x, y), tile_size)
-                    self.tiles.add(tile)
-                if cell == 'P':
-                    player_sprite = Player((x, y), self.display_surface, self.create_jump_particles)
-                    self.player.add(player_sprite)
-
-    # Прокрутка экрана по горизонтали
     def scroll_x(self):
         player = self.player.sprite
         player_x = player.rect.centerx
@@ -77,64 +197,114 @@ class Level:
             self.world_shift = 0
             player.speed = 8
 
-    # Определение столкновений игрока с объектами по горизонтали
-    def horizontal_movement_collision(self):
-        player = self.player.sprite
-        player.rect.x += player.direction.x * player.speed
+    def get_player_on_ground(self):
+        if self.player.sprite.on_ground:
+            self.player_on_ground = True
+        else:
+            self.player_on_ground = False
 
-        for sprite in self.tiles.sprites():
-            if sprite.rect.colliderect(player.rect):
-                if player.direction.x < 0:
-                    player.rect.left = sprite.rect.right
-                    player.on_left = True
-                    self.current_x = player.rect.left
-                elif player.direction.x > 0:
-                    player.rect.right = sprite.rect.left
-                    player.on_right = True
-                    self.current_x = player.rect.right
+    def create_landing_dust(self):
+        if not self.player_on_ground and self.player.sprite.on_ground and not self.dust_sprite.sprites():
+            if self.player.sprite.facing_right:
+                offset = pygame.math.Vector2(10, 15)
+            else:
+                offset = pygame.math.Vector2(-10, 15)
+            fall_dust_particle = ParticleEffect(self.player.sprite.rect.midbottom - offset, 'land')
+            self.dust_sprite.add(fall_dust_particle)
 
-        if player.on_left and (player.rect.left < self.current_x or player.direction.x >= 0):
-            player.on_left = False
-        if player.on_right and (player.rect.right > self.current_x or player.direction.x <= 0):
-            player.on_right = False
+    def check_death(self):
+        if self.player.sprite.rect.top > screen_height:
+            self.create_overworld(self.current_level, 0)
 
-    # Определение столкновений игрока с объектами по вертикали
-    def vertical_movement_collision(self):
-        player = self.player.sprite
-        player.apply_gravity()
+    def check_win(self):
+        if pygame.sprite.spritecollide(self.player.sprite, self.goal, False):
+            self.create_overworld(self.current_level, self.new_max_level)
 
-        for sprite in self.tiles.sprites():
-            if sprite.rect.colliderect(player.rect):
-                if player.direction.y > 0:
-                    player.rect.bottom = sprite.rect.top
-                    player.direction.y = 0
-                    player.on_ground = True
-                elif player.direction.y < 0:
-                    player.rect.top = sprite.rect.bottom
-                    player.direction.y = 0
-                    player.on_ceiling = True
+    def check_coin_collisions(self):
+        collided_coins = pygame.sprite.spritecollide(self.player.sprite, self.coin_sprites, True)
+        if collided_coins:
+            self.coin_sound.play()
+            for coin in collided_coins:
+                self.change_coins(coin.value)
 
-        if player.on_ground and player.direction.y < 0 or player.direction.y > 1:
-            player.on_ground = False
-        if player.on_ceiling and player.direction.y > 0.1:
-            player.on_ceiling = False
+    def check_enemy_collisions(self):
+        enemy_collisions = pygame.sprite.spritecollide(self.player.sprite, self.enemy_sprites, False)
+
+        if enemy_collisions:
+            for enemy in enemy_collisions:
+                enemy_center = enemy.rect.centery
+                enemy_top = enemy.rect.top
+                player_bottom = self.player.sprite.rect.bottom
+                if enemy_top < player_bottom < enemy_center and self.player.sprite.direction.y >= 0:
+                    self.stomp_sound.play()
+                    self.player.sprite.direction.y = -15
+                    explosion_sprite = ParticleEffect(enemy.rect.center, 'explosion')
+                    self.explosion_sprites.add(explosion_sprite)
+                    enemy.kill()
+                else:
+                    self.player.sprite.get_damage()
 
     # Запуск уровня
     def run(self):
-        # Частицы пыли
-        self.dust_sprite.update(self.world_shift)  # Обновление группы спрайтов пыли с учетом сдвига мира
-        self.dust_sprite.draw(self.display_surface)  # Отображение группы спрайтов пыли на экране
 
-        # Тайлы уровня
-        self.tiles.update(self.world_shift)  # Обновление группы спрайтов тайлов с учетом сдвига мира
-        self.tiles.draw(self.display_surface)  # Отображение группы спрайтов тайлов на экране
-        self.scroll_x()  # Проверка и изменение сдвига мира в горизонтальной плоскости
+        # небо
+        self.sky.draw(self.display_surface)
+        self.clouds.draw(self.display_surface, self.world_shift)
 
-        # Игрок
-        self.player.update()  # Обновление спрайта игрока
-        self.horizontal_movement_collision()  # Обработка столкновений игрока с тайлами в горизонтальной плоскости
-        self.get_player_on_ground()  # Проверка, находится ли игрок на земле
-        self.vertical_movement_collision()  # Обработка столкновений игрока с тайлами в вертикальной плоскости
-        self.create_landing_dust()  # Создание эффекта падения пыли при приземлении игрока
-        self.player.draw(self.display_surface)  # Отображение спрайта игрока на экране
+        # задний план
+        self.bg_palm_sprites.update(self.world_shift)
+        self.bg_palm_sprites.draw(self.display_surface)
 
+        # частицы пыли
+        self.dust_sprite.update(self.world_shift)
+        self.dust_sprite.draw(self.display_surface)
+
+        # ландшафт
+        self.terrain_sprites.update(self.world_shift)
+        self.terrain_sprites.draw(self.display_surface)
+
+        # враги
+        self.enemy_sprites.update(self.world_shift)
+        self.constraint_sprites.update(self.world_shift)
+        self.enemy_collision_reverse()
+        self.enemy_sprites.draw(self.display_surface)
+        self.explosion_sprites.update(self.world_shift)
+        self.explosion_sprites.draw(self.display_surface)
+
+        # ящик
+        self.crate_sprites.update(self.world_shift)
+        self.crate_sprites.draw(self.display_surface)
+
+        # трава
+        self.grass_sprites.update(self.world_shift)
+        self.grass_sprites.draw(self.display_surface)
+
+        # монетки
+        self.coin_sprites.update(self.world_shift)
+        self.coin_sprites.draw(self.display_surface)
+
+        # передний план
+        self.fg_palm_sprites.update(self.world_shift)
+        self.fg_palm_sprites.draw(self.display_surface)
+
+        # игрок
+        self.player.update()
+        self.horizontal_movement_collision()
+
+        self.get_player_on_ground()
+        self.vertical_movement_collision()
+        self.create_landing_dust()
+
+        self.scroll_x()
+        self.player.draw(self.display_surface)
+        self.goal.update(self.world_shift)
+        self.goal.draw(self.display_surface)
+
+        self.check_death()
+        self.check_win()
+
+        self.check_coin_collisions()
+        self.check_enemy_collisions()
+
+        # вода
+        self.water.draw(self.display_surface, self.world_shift)

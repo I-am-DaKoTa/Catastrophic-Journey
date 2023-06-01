@@ -1,9 +1,10 @@
 import pygame
 from support import import_folder
+from math import sin
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, pos, surface, create_jump_particles):
+    def __init__(self, pos, surface, create_jump_particles, change_health):
         super().__init__()
         self.import_character_assets()  # Загружаем изображения персонажа
         self.frame_index = 0  # Индекс текущего кадра
@@ -18,19 +19,31 @@ class Player(pygame.sprite.Sprite):
         self.display_surface = surface  # Устанавливаем поверхность, на которой будет отображаться персонаж
         self.create_jump_particles = create_jump_particles  # Функция для создания частиц при прыжке
 
-        # движение персонажа
+        # Движение игрока
         self.direction = pygame.math.Vector2(0, 0)  # Устанавливаем вектор направления движения персонажа
         self.speed = 8  # Скорость перемещения персонажа
         self.gravity = 0.8  # Гравитация
         self.jump_speed = -16  # Скорость прыжка
+        self.collision_rect = pygame.Rect(self.rect.topleft, (50, self.rect.height))  # Коллизия
 
-        # статус персонажа
+        # Статус игрока
         self.status = 'idle'  # Изначально устанавливаем статус персонажа в "бездействие"
         self.facing_right = True  # Персонаж смотрит направо
         self.on_ground = False  # Персонаж не находится на земле
         self.on_ceiling = False  # Персонаж не находится на потолке
         self.on_left = False  # Персонаж не находится слева
         self.on_right = False  # Персонаж не находится справа
+
+        # Здоровье
+        self.change_health = change_health
+        self.invincible = False
+        self.invincibility_duration = 500
+        self.hurt_time = 0
+
+        # Аудио
+        self.jump_sound = pygame.mixer.Sound('../audio/effects/jump.mp3')
+        self.jump_sound.set_volume(0.5)
+        self.hit_sound = pygame.mixer.Sound('../audio/effects/hit.mp3')
 
     # Изображения персонажа
     def import_character_assets(self):
@@ -59,23 +72,19 @@ class Player(pygame.sprite.Sprite):
         # Поворот анимации
         if self.facing_right:
             self.image = image
+            self.rect.bottomleft = self.collision_rect.bottomleft
         else:
             flipped_image = pygame.transform.flip(image, True, False)
             self.image = flipped_image
+            self.rect.bottomright = self.collision_rect.bottomright
 
-        # Устанавливается прямоугольник игрока
-        if self.on_ground and self.on_right:
-            self.rect = self.image.get_rect(bottomright=self.rect.bottomright)
-        elif self.on_ground and self.on_left:
-            self.rect = self.image.get_rect(bottomleft=self.rect.bottomleft)
-        elif self.on_ground:
-            self.rect = self.image.get_rect(midbottom=self.rect.midbottom)
-        elif self.on_ceiling and self.on_right:
-            self.rect = self.image.get_rect(topright=self.rect.topright)
-        elif self.on_ceiling and self.on_left:
-            self.rect = self.image.get_rect(topleft=self.rect.topleft)
-        elif self.on_ceiling:
-            self.rect = self.image.get_rect(midtop=self.rect.midtop)
+        if self.invincible:
+            alpha = self.wave_value()
+            self.image.set_alpha(alpha)
+        else:
+            self.image.set_alpha(255)
+
+        self.rect = self.image.get_rect(midbottom=self.rect.midbottom)
 
     # Функция, которая осуществляет анимацию пыли при беге игрока
     def run_dust_animation(self):
@@ -109,7 +118,7 @@ class Player(pygame.sprite.Sprite):
         else:
             self.direction.x = 0
 
-        if (keys[pygame.K_SPACE] or keys[pygame.K_w] or keys[pygame.K_UP]) and self.on_ground:
+        if keys[pygame.K_SPACE] and self.on_ground:
             self.jump()
             self.create_jump_particles(self.rect.midbottom)
 
@@ -128,14 +137,39 @@ class Player(pygame.sprite.Sprite):
     # Функция для гравитации игрока
     def apply_gravity(self):
         self.direction.y += self.gravity
-        self.rect.y += self.direction.y
+        self.collision_rect.y += self.direction.y
 
     # Прыжок
     def jump(self):
         self.direction.y = self.jump_speed
+        self.jump_sound.play()
+
+    # Получение урона
+    def get_damage(self):
+        if not self.invincible:
+            self.hit_sound.play()
+            self.change_health(-10)
+            self.invincible = True
+            self.hurt_time = pygame.time.get_ticks()
+
+    # Таймер неуязвимости
+    def invincibility_timer(self):
+        if self.invincible:
+            current_time = pygame.time.get_ticks()
+            if current_time - self.hurt_time >= self.invincibility_duration:
+                self.invincible = False
+
+    def wave_value(self):
+        value = sin(pygame.time.get_ticks())
+        if value >= 0:
+            return 255
+        else:
+            return 0
 
     def update(self):
-        self.get_input()  # Получаем входные данные (нажатие клавиш) от пользователя
-        self.get_status()  # Определяем статус игрока
-        self.animate()  # Анимируем игрока
-        self.run_dust_animation()  # Анимируем пыль, которая поднимается при беге игрока
+        self.get_input()
+        self.get_status()
+        self.animate()
+        self.run_dust_animation()
+        self.invincibility_timer()
+        self.wave_value()
