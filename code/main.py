@@ -3,6 +3,7 @@ import sys
 
 from level import Level
 from settings import *
+from game_data import level_snow_dungeon
 
 # Запуск
 pygame.init()
@@ -12,7 +13,7 @@ screen = pygame.display.set_mode((screen_width, screen_height))
 # Часы для контроля времени в игре
 clock = pygame.time.Clock()
 # Создание уровня
-level = Level(level_map, screen)
+level = Level(level_snow_dungeon, screen)
 
 
 while True:

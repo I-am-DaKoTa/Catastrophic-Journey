@@ -1,5 +1,5 @@
 # Технический уровень
-level_map = [
+'''level_map = [
     '                            ',
     '                            ',
     '                            ',
@@ -16,4 +16,10 @@ level_map = [
 tile_size = 64
 # Размер экрана
 screen_width = 1280
-screen_height = len(level_map) * tile_size
+screen_height = len(level_map) * tile_size'''
+
+vertical_tile_number = 11
+tile_size = 64
+
+screen_height = vertical_tile_number * tile_size
+screen_width = 1200
