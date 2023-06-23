@@ -1,4 +1,4 @@
-from csv import reader
+import csv
 from settings import tile_size
 from os import walk
 import pygame
@@ -19,7 +19,7 @@ def import_folder(path):
 def import_csv_layout(path):
     terrain_map = []
     with open(path) as map:
-        level = reader(map, delimiter=',')
+        level = csv.reader(map, delimiter=',')
         for row in level:
             terrain_map.append(list(row))
         return terrain_map

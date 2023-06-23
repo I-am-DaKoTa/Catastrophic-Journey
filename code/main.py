@@ -35,10 +35,11 @@ class Game:
     def create_overworld(self, current_level, new_max_level):
         if new_max_level > self.max_level:
             self.max_level = new_max_level
+        self.cur_health = 100
         self.overworld = Overworld(current_level, self.max_level, screen, self.create_level)
         self.status = 'overworld'
-        self.overworld_bg_music.play(loops=-1)
         self.level_bg_music.stop()
+        self.overworld_bg_music.play(loops=-1)
 
     def change_coins(self, amount):
         self.coins += amount
@@ -49,8 +50,6 @@ class Game:
     def check_game_over(self):
         if self.cur_health <= 0:
             self.cur_health = 100
-            self.coins = 0
-            self.max_level = 0
             self.overworld = Overworld(0, self.max_level, screen, self.create_level)
             self.status = 'overworld'
             self.level_bg_music.stop()

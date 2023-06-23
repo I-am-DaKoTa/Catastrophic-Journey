@@ -1,3 +1,5 @@
+import csv
+
 import pygame
 from support import import_csv_layout, import_cut_graphics
 from settings import tile_size, screen_height, screen_width
@@ -103,8 +105,14 @@ class Level:
                         sprite = Crate(tile_size, x, y)
 
                     if type == 'coins':
-                        if val == '0': sprite = Coin(tile_size, x, y, '../graphics/coins/gold', 5)
-                        if val == '1': sprite = Coin(tile_size, x, y, '../graphics/coins/silver', 1)
+                        if val == '0':
+                            sprite = Coin(tile_size, x, y, '../graphics/coins/gold', 5)
+                            sprite.abs_x = x
+                            sprite.abs_y = y
+                        if val == '1':
+                            sprite = Coin(tile_size, x, y, '../graphics/coins/silver', 1)
+                            sprite.abs_x = x
+                            sprite.abs_y = y
 
                     if type == 'fg palms':
                         if val == '0': sprite = Palm(tile_size, x, y, '../graphics/terrain/palm_small', 38)
@@ -214,7 +222,7 @@ class Level:
 
     def check_death(self):
         if self.player.sprite.rect.top > screen_height:
-            self.create_overworld(self.current_level, 0)
+            self.create_overworld(self.current_level, self.current_level)
 
     def check_win(self):
         if pygame.sprite.spritecollide(self.player.sprite, self.goal, False):
@@ -225,7 +233,24 @@ class Level:
         if collided_coins:
             self.coin_sound.play()
             for coin in collided_coins:
+                filename = f"../levels/{self.current_level}/level_{self.current_level}_coins.csv"
+                coin_row = coin.abs_x // tile_size
+                coin_col = coin.abs_y // tile_size
+                print(coin_row, coin_col)
                 self.change_coins(coin.value)
+                self.update_coin_value_in_csv(filename, coin_row, coin_col, -1)
+
+
+    def update_coin_value_in_csv(self, filename, row, col, new_value):
+
+        with open(filename, 'r') as csvfile:
+            coins_data = list(csv.reader(csvfile))
+            coins_data[col][row] = str(new_value)
+
+        with open(filename, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerows(coins_data)
+
 
     def check_enemy_collisions(self):
         enemy_collisions = pygame.sprite.spritecollide(self.player.sprite, self.enemy_sprites, False)
