@@ -21,6 +21,7 @@ class Level:
         # аудио
         self.coin_sound = pygame.mixer.Sound('../audio/effects/coin.mp3')
         self.stomp_sound = pygame.mixer.Sound('../audio/effects/stomp.mp3')
+        self.health_sound = pygame.mixer.Sound('../audio/effects/health.mp3')
 
         # связь с картой мира
         self.create_overworld = create_overworld
@@ -36,6 +37,7 @@ class Level:
 
         # интерфейс
         self.change_coins = change_coins
+        self.change_health = change_health
 
         # частицы пыли
         self.dust_sprite = pygame.sprite.GroupSingle()
@@ -51,6 +53,10 @@ class Level:
         # Монетки
         coin_layout = import_csv_layout(level_data['coins'])
         self.coin_sprites = self.create_tile_group(coin_layout, 'coins', current_level)
+
+        # Бонус к жизням
+        heart_normal_layout = import_csv_layout(level_data['nheart'])
+        self.heart_normal_sprites = self.create_tile_group(heart_normal_layout, 'nheart', current_level)
 
         # Декорации
         deco_sprites = import_csv_layout(level_data['deco'])
@@ -110,6 +116,16 @@ class Level:
                             sprite = Coin(tile_size, x, y, '../graphics/coins/silver', 1)
                             sprite.abs_x = x
                             sprite.abs_y = y
+
+                    if type == 'nheart':
+                        sprite = Coin(tile_size, x, y, '../graphics/hearts/normal', 30)
+                        sprite.abs_x = x
+                        sprite.abs_y = y
+
+                    if type == 'rheart':
+                        sprite = Coin(tile_size, x, y, '../graphics/hearts/rainbow', 5)
+                        sprite.abs_x = x
+                        sprite.abs_y = y
 
                     if type == 'deco':
                         if val == '0':
@@ -289,6 +305,13 @@ class Level:
         if pygame.sprite.spritecollide(self.player.sprite, self.goal, False):
             self.create_overworld(self.current_level, self.new_max_level)
 
+    def check_nheart_collisions(self):
+        collided_nherts = pygame.sprite.spritecollide(self.player.sprite, self.heart_normal_sprites, True)
+        if collided_nherts:
+            self.health_sound.play()
+            for coin in collided_nherts:
+                self.change_health(coin.value)
+
     def check_coin_collisions(self):
         collided_coins = pygame.sprite.spritecollide(self.player.sprite, self.coin_sprites, True)
         if collided_coins:
@@ -358,6 +381,11 @@ class Level:
         self.coin_sprites.update(self.world_shift)
         self.coin_sprites.draw(self.display_surface)
 
+        # монетки
+        self.heart_normal_sprites.update(self.world_shift)
+        self.heart_normal_sprites.draw(self.display_surface)
+
+
         # игрок
         self.player.update()
         self.horizontal_movement_collision()
@@ -376,6 +404,7 @@ class Level:
 
         self.check_coin_collisions()
         self.check_enemy_collisions()
+        self.check_nheart_collisions()
 
         # вода
         self.water.draw(self.display_surface, self.world_shift)

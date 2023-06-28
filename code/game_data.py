@@ -5,6 +5,7 @@ level_0 = {
     'enemy': '../levels/0/level_0_enemy.csv',
     'constraints': '../levels/0/level_0_constraints.csv',
     'player': '../levels/0/level_0_player.csv',
+    'nheart': '../levels/0/level_0_nheart.csv',
     'node_pos': (110, 400),
     'unlock': 1,
     'node_graphics': '../graphics/overworld/0'}
@@ -15,6 +16,7 @@ level_1 = {
     'enemy': '../levels/1/level_1_enemy.csv',
     'constraints': '../levels/1/level_1_constraints.csv',
     'player': '../levels/1/level_1_player.csv',
+    'nheart': '../levels/1/level_1_nheart.csv',
     'node_pos': (350, 220),
     'node_graphics': '../graphics/overworld/1',
     'unlock': 2}
@@ -25,6 +27,7 @@ level_2 = {
     'enemy': '../levels/2/level_2_enemy.csv',
     'constraints': '../levels/2/level_2_constraints.csv',
     'player': '../levels/2/level_2_player.csv',
+    'nheart': '../levels/2/level_2_nheart.csv',
     'node_pos': (530, 560),
     'node_graphics': '../graphics/overworld/2',
     'unlock': 3}
@@ -35,6 +38,7 @@ level_3 = {
     'enemy': '../levels/3/level_3_enemy.csv',
     'constraints': '../levels/3/level_3_constraints.csv',
     'player': '../levels/3/level_3_player.csv',
+    'nheart': '../levels/3/level_3_nheart.csv',
     'node_pos': (750, 350),
     'node_graphics': '../graphics/overworld/3',
     'unlock': 4}
@@ -45,6 +49,7 @@ level_4 = {
     'enemy': '../levels/4/level_4_enemy.csv',
     'constraints': '../levels/4/level_4_constraints.csv',
     'player': '../levels/4/level_4_player.csv',
+    'nheart': '../levels/4/level_4_nheart.csv',
     'node_pos': (1030, 210),
     'node_graphics': '../graphics/overworld/4',
     'unlock': 5}
