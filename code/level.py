@@ -90,8 +90,6 @@ class Level:
                             sprite = StaticTile(tile_size, x, y, tile_surface)
                         if current_lvl == 2:
                             terrain_tile_list = import_cut_graphics('../graphics/tilesets/tileset_snow.png')
-                            print(terrain_tile_list)
-                            print(val)
                             tile_surface = terrain_tile_list[int(val)]
                             sprite = StaticTile(tile_size, x, y, tile_surface)
                         if current_lvl == 3:
