@@ -9,7 +9,7 @@ class Game:
     def __init__(self):
 
         # Игровые атрибуты
-        self.max_level = 0
+        self.max_level = int(open('../data/saves.txt', 'r').read())
         self.max_health = 100
         self.cur_health = 100
         self.coins = 0
@@ -35,6 +35,7 @@ class Game:
     def create_overworld(self, current_level, new_max_level):
         if new_max_level > self.max_level:
             self.max_level = new_max_level
+            open('../data/saves.txt', 'w').write(str(new_max_level))
         self.cur_health = 100
         self.overworld = Overworld(current_level, self.max_level, screen, self.create_level)
         self.status = 'overworld'
