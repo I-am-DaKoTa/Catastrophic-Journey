@@ -1,6 +1,7 @@
 import csv
 from settings import tile_size
 from os import walk
+import os.path
 import pygame
 
 
@@ -18,11 +19,14 @@ def import_folder(path):
 
 def import_csv_layout(path):
     terrain_map = []
-    with open(path) as map:
-        level = csv.reader(map, delimiter=',')
-        for row in level:
-            terrain_map.append(list(row))
-        return terrain_map
+    if os.path.exists(path):
+        with open(path) as map_file:
+            level = csv.reader(map_file, delimiter=',')
+            for row in level:
+                terrain_map.append(list(row))
+    else:
+        print(f"Файл '{path}' не найден.")
+    return terrain_map
 
 
 def import_cut_graphics(path):

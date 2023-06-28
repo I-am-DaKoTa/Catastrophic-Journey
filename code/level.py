@@ -3,7 +3,7 @@ import csv
 import pygame
 from support import import_csv_layout, import_cut_graphics
 from settings import tile_size, screen_height, screen_width
-from tiles import Tile, StaticTile, Crate, Coin, Palm, Flag
+from tiles import Tile, StaticTile, Coin, Flag, Deco
 from enemy import Enemy
 from decoration import Sky, Water, Clouds
 from player import Player
@@ -46,43 +46,31 @@ class Level:
 
         # Создание ландшафта
         terrain_layout = import_csv_layout(level_data['terrain'])
-        self.terrain_sprites = self.create_tile_group(terrain_layout, 'terrain')
-
-        # Создание травы
-        grass_layout = import_csv_layout(level_data['grass'])
-        self.grass_sprites = self.create_tile_group(grass_layout, 'grass')
-
-        # Ящики
-        crate_layout = import_csv_layout(level_data['crates'])
-        self.crate_sprites = self.create_tile_group(crate_layout, 'crates')
+        self.terrain_sprites = self.create_tile_group(terrain_layout, 'terrain', current_level)
 
         # Монетки
         coin_layout = import_csv_layout(level_data['coins'])
-        self.coin_sprites = self.create_tile_group(coin_layout, 'coins')
+        self.coin_sprites = self.create_tile_group(coin_layout, 'coins', current_level)
 
-        # Передний план
-        fg_palm_layout = import_csv_layout(level_data['fg palms'])
-        self.fg_palm_sprites = self.create_tile_group(fg_palm_layout, 'fg palms')
-
-        # Задний план
-        bg_palm_layout = import_csv_layout(level_data['bg palms'])
-        self.bg_palm_sprites = self.create_tile_group(bg_palm_layout, 'bg palms')
+        # Декорации
+        deco_sprites = import_csv_layout(level_data['deco'])
+        self.deco_sprites = self.create_tile_group(deco_sprites, 'deco', current_level)
 
         # Враги
-        enemy_layout = import_csv_layout(level_data['enemies'])
-        self.enemy_sprites = self.create_tile_group(enemy_layout, 'enemies')
+        enemy_layout = import_csv_layout(level_data['enemy'])
+        self.enemy_sprites = self.create_tile_group(enemy_layout, 'enemy', current_level)
 
         # Ограничение
         constraint_layout = import_csv_layout(level_data['constraints'])
-        self.constraint_sprites = self.create_tile_group(constraint_layout, 'constraint')
+        self.constraint_sprites = self.create_tile_group(constraint_layout, 'constraint', current_level)
 
-        # Декорации
-        self.sky = Sky(8)
+        # Облака
+        self.sky = Sky(8, current_level)
         level_width = len(terrain_layout[0]) * tile_size
-        self.water = Water(screen_height - 20, level_width)
-        self.clouds = Clouds(400, level_width, 30)
+        self.water = Water(screen_height - 20, level_width, current_level)
+        self.clouds = Clouds(400, level_width, 30, current_level)
 
-    def create_tile_group(self, layout, type):
+    def create_tile_group(self, layout, type, current_lvl):
         sprite_group = pygame.sprite.Group()
 
         for row_index, row in enumerate(layout):
@@ -92,17 +80,28 @@ class Level:
                     y = row_index * tile_size
 
                     if type == 'terrain':
-                        terrain_tile_list = import_cut_graphics('../graphics/terrain/terrain_tiles.png')
-                        tile_surface = terrain_tile_list[int(val)]
-                        sprite = StaticTile(tile_size, x, y, tile_surface)
-
-                    if type == 'grass':
-                        grass_tile_list = import_cut_graphics('../graphics/decoration/grass/grass.png')
-                        tile_surface = grass_tile_list[int(val)]
-                        sprite = StaticTile(tile_size, x, y, tile_surface)
-
-                    if type == 'crates':
-                        sprite = Crate(tile_size, x, y)
+                        if current_lvl == 0:
+                            terrain_tile_list = import_cut_graphics('../graphics/tilesets/tileset_forest.png')
+                            tile_surface = terrain_tile_list[int(val)]
+                            sprite = StaticTile(tile_size, x, y, tile_surface)
+                        if current_lvl == 1:
+                            terrain_tile_list = import_cut_graphics('../graphics/tilesets/tileset_desert.png')
+                            tile_surface = terrain_tile_list[int(val)]
+                            sprite = StaticTile(tile_size, x, y, tile_surface)
+                        if current_lvl == 2:
+                            terrain_tile_list = import_cut_graphics('../graphics/tilesets/tileset_snow.png')
+                            print(terrain_tile_list)
+                            print(val)
+                            tile_surface = terrain_tile_list[int(val)]
+                            sprite = StaticTile(tile_size, x, y, tile_surface)
+                        if current_lvl == 3:
+                            terrain_tile_list = import_cut_graphics('../graphics/tilesets/tileset_water.png')
+                            tile_surface = terrain_tile_list[int(val)]
+                            sprite = StaticTile(tile_size, x, y, tile_surface)
+                        if current_lvl == 4:
+                            terrain_tile_list = import_cut_graphics('../graphics/tilesets/tileset_lava.png')
+                            tile_surface = terrain_tile_list[int(val)]
+                            sprite = StaticTile(tile_size, x, y, tile_surface)
 
                     if type == 'coins':
                         if val == '0':
@@ -114,15 +113,79 @@ class Level:
                             sprite.abs_x = x
                             sprite.abs_y = y
 
-                    if type == 'fg palms':
-                        if val == '0': sprite = Palm(tile_size, x, y, '../graphics/terrain/palm_small', 38)
-                        if val == '1': sprite = Palm(tile_size, x, y, '../graphics/terrain/palm_large', 64)
+                    if type == 'deco':
+                        if val == '0':
+                            sprite = Deco(tile_size, x, y, '../graphics/deco/bush.png')
+                        if val == '1':
+                            sprite = Deco(tile_size, x, y, '../graphics/deco/log_wall.png')
+                        if val == '2':
+                            sprite = Deco(tile_size, x, y, '../graphics/deco/rock_a.png')
+                        if val == '3':
+                            sprite = Deco(tile_size, x, y, '../graphics/deco/rock_b.png')
+                        if val == '4':
+                            sprite = Deco(tile_size, x, y, '../graphics/deco/tree.png')
+                        if val == '5':
+                            sprite = Deco(tile_size, x, y, '../graphics/deco/tree_b.png')
+                        if val == '6':
+                            sprite = Deco(tile_size, x, y, '../graphics/deco/tree_c.png')
+                        if val == '7':
+                            sprite = Deco(tile_size, x, y, '../graphics/deco/tree_trunk.png')
+                        if val == '8':
+                            sprite = Deco(tile_size, x, y, '../graphics/deco/0_grass_0.png')
+                        if val == '9':
+                            sprite = Deco(tile_size, x, y, '../graphics/deco/0_grass_1.png')
+                        if val == '10':
+                            sprite = Deco(tile_size, x, y, '../graphics/deco/0_rock.png')
+                        if val == '11':
+                            sprite = Deco(tile_size, x, y, '../graphics/deco/1_pyramid.png')
+                        if val == '12':
+                            sprite = Deco(tile_size, x, y, '../graphics/deco/1_rock_0.png')
+                        if val == '13':
+                            sprite = Deco(tile_size, x, y, '../graphics/deco/1_rock_1.png')
+                        if val == '14':
+                            sprite = Deco(tile_size, x, y, '../graphics/deco/2_rock_0.png')
+                        if val == '15':
+                            sprite = Deco(tile_size, x, y, '../graphics/deco/2_rock_1.png')
+                        if val == '16':
+                            sprite = Deco(tile_size, x, y, '../graphics/deco/2_snow_0.png')
+                        if val == '17':
+                            sprite = Deco(tile_size, x, y, '../graphics/deco/2_snow_1.png')
+                        if val == '18':
+                            sprite = Deco(tile_size, x, y, '../graphics/deco/2_snowman.png')
+                        if val == '19':
+                            sprite = Deco(tile_size, x, y, '../graphics/deco/3_grass_0.png')
+                        if val == '20':
+                            sprite = Deco(tile_size, x, y, '../graphics/deco/3_grass_1.png')
+                        if val == '21':
+                            sprite = Deco(tile_size, x, y, '../graphics/deco/3_grass_2.png')
+                        if val == '22':
+                            sprite = Deco(tile_size, x, y, '../graphics/deco/3_rock_0.png')
+                        if val == '23':
+                            sprite = Deco(tile_size, x, y, '../graphics/deco/3_rock_1.png')
+                        if val == '24':
+                            sprite = Deco(tile_size, x, y, '../graphics/deco/4_rock_0.png')
+                        if val == '25':
+                            sprite = Deco(tile_size, x, y, '../graphics/deco/4_rock_1.png')
+                        if val == '26':
+                            sprite = Deco(tile_size, x, y, '../graphics/deco/4_rock_3.png')
+                        if val == '27':
+                            sprite = Deco(tile_size, x, y, '../graphics/deco/sun_0.png')
+                        if val == '28':
+                            sprite = Deco(tile_size, x, y, '../graphics/deco/sun_1.png')
+                        if val == '29':
+                            sprite = Deco(tile_size, x, y, '../graphics/deco/sun_3.png')
 
-                    if type == 'bg palms':
-                        sprite = Palm(tile_size, x, y, '../graphics/terrain/palm_bg', 64)
-
-                    if type == 'enemies':
-                        sprite = Enemy(tile_size, x, y)
+                    if type == 'enemy':
+                        if current_lvl == 0:
+                            sprite = Enemy(tile_size, x, y, '../graphics/enemy/brown_bear')
+                        if current_lvl == 1:
+                            sprite = Enemy(tile_size, x, y, '../graphics/enemy/snake')
+                        if current_lvl == 2:
+                            sprite = Enemy(tile_size, x, y, '../graphics/enemy/polar_bear')
+                        if current_lvl == 3:
+                            sprite = Enemy(tile_size, x, y, '../graphics/enemy/crab')
+                        if current_lvl == 4:
+                            sprite = Enemy(tile_size, x, y, '../graphics/enemy/slime_red')
 
                     if type == 'constraint':
                         sprite = Tile(tile_size, x, y)
@@ -159,7 +222,7 @@ class Level:
     def horizontal_movement_collision(self):
         player = self.player.sprite
         player.collision_rect.x += player.direction.x * player.speed
-        collidable_sprites = self.terrain_sprites.sprites() + self.crate_sprites.sprites() + self.fg_palm_sprites.sprites()
+        collidable_sprites = self.terrain_sprites.sprites()
         for sprite in collidable_sprites:
             if sprite.rect.colliderect(player.collision_rect):
                 if player.direction.x < 0:
@@ -174,7 +237,7 @@ class Level:
     def vertical_movement_collision(self):
         player = self.player.sprite
         player.apply_gravity()
-        collidable_sprites = self.terrain_sprites.sprites() + self.crate_sprites.sprites() + self.fg_palm_sprites.sprites()
+        collidable_sprites = self.terrain_sprites.sprites()
 
         for sprite in collidable_sprites:
             if sprite.rect.colliderect(player.collision_rect):
@@ -236,10 +299,8 @@ class Level:
                 filename = f"../levels/{self.current_level}/level_{self.current_level}_coins.csv"
                 coin_row = coin.abs_x // tile_size
                 coin_col = coin.abs_y // tile_size
-                print(coin_row, coin_col)
                 self.change_coins(coin.value)
                 self.update_coin_value_in_csv(filename, coin_row, coin_col, -1)
-
 
     def update_coin_value_in_csv(self, filename, row, col, new_value):
 
@@ -250,7 +311,6 @@ class Level:
         with open(filename, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
             writer.writerows(coins_data)
-
 
     def check_enemy_collisions(self):
         enemy_collisions = pygame.sprite.spritecollide(self.player.sprite, self.enemy_sprites, False)
@@ -277,8 +337,8 @@ class Level:
         self.clouds.draw(self.display_surface, self.world_shift)
 
         # задний план
-        self.bg_palm_sprites.update(self.world_shift)
-        self.bg_palm_sprites.draw(self.display_surface)
+        self.deco_sprites.update(self.world_shift)
+        self.deco_sprites.draw(self.display_surface)
 
         # частицы пыли
         self.dust_sprite.update(self.world_shift)
@@ -296,21 +356,9 @@ class Level:
         self.explosion_sprites.update(self.world_shift)
         self.explosion_sprites.draw(self.display_surface)
 
-        # ящик
-        self.crate_sprites.update(self.world_shift)
-        self.crate_sprites.draw(self.display_surface)
-
-        # трава
-        self.grass_sprites.update(self.world_shift)
-        self.grass_sprites.draw(self.display_surface)
-
         # монетки
         self.coin_sprites.update(self.world_shift)
         self.coin_sprites.draw(self.display_surface)
-
-        # передний план
-        self.fg_palm_sprites.update(self.world_shift)
-        self.fg_palm_sprites.draw(self.display_surface)
 
         # игрок
         self.player.update()
